@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#4a3a2b"/>
+  <rect x="500" y="360" width="280" height="200" rx="16" fill="#c9962e"/>
+  <rect x="500" y="360" width="280" height="60" rx="16" fill="#e0b452"/>
+  <text x="640" y="120" fill="#e8cf9f" font-family="sans-serif" font-size="46" text-anchor="middle">SAMPLE IMAGE 003</text>
+  <text x="640" y="180" fill="#a3845e" font-family="sans-serif" font-size="28" text-anchor="middle">宝箱（横長 16:9）</text>
+</svg>
