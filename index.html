@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ゲームブック</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/page.css">
+</head>
+<body>
+  <main id="app">
+    <!-- タイトル画面 -->
+    <section id="title-screen" class="screen">
+      <div class="title-inner">
+        <h1 class="title-text">ゲームブック</h1>
+        <p class="title-sub">SAMPLE GAMEBOOK</p>
+        <button id="start-btn" type="button" class="start-btn">はじめる</button>
+      </div>
+    </section>
+
+    <!-- ゲーム画面 -->
+    <section id="game-screen" class="screen" hidden>
+      <div class="page">
+        <!-- メディア（画像 or 動画）。1ページ1枚。 -->
+        <div class="page-media" id="page-media"></div>
+        <!-- 本文（空の場合は表示しない） -->
+        <div class="page-text" id="page-text"></div>
+        <!-- 選択肢（最大3つ） -->
+        <nav class="page-choices" id="page-choices"></nav>
+      </div>
+    </section>
+
+    <!-- 読み込み中 / エラー表示 -->
+    <section id="loading-screen" class="screen" hidden>
+      <p class="loading-text">読み込み中...</p>
+    </section>
+    <section id="error-screen" class="screen" hidden>
+      <p class="error-text" id="error-message"></p>
+    </section>
+
+    <!-- CSV選択画面（サーバー無し・埋め込み無しで直接開いたときのフォールバック） -->
+    <section id="picker-screen" class="screen" hidden>
+      <div class="picker-inner">
+        <p class="picker-title">データ(CSV)を読み込んでください</p>
+        <p class="picker-note">ファイルを直接開いたため自動読込ができませんでした。<br>下のボタンから <code>data.csv</code> を選ぶか、ここにドラッグ＆ドロップしてください。</p>
+        <label class="picker-btn">
+          CSVファイルを選択
+          <input type="file" id="csv-file-input" accept=".csv,text/csv" hidden>
+        </label>
+        <div class="picker-drop" id="csv-drop-zone">ここにCSVをドロップ</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 任意：CSVを埋め込んだデータ（配布してダブルクリックで開く場合に使用）。
+       存在しなくても動作します（その場合はfetch→ファイル選択にフォールバック）。 -->
+  <script src="data/data.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+/* =====================================================================
+ * page.css  -  タイトル / ページ / 選択肢 の見た目
+ * 配色・装飾はここを編集すれば作品ごとに調整できます。
+ * ===================================================================== */
+
+/* ---------- タイトル画面 ---------- */
+.title-inner {
+  text-align: center;
+  max-width: 720px;
+}
+
+.title-text {
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  letter-spacing: .08em;
+  margin-bottom: .25em;
+}
+
+.title-sub {
+  font-size: clamp(.8rem, 3vw, 1rem);
+  letter-spacing: .3em;
+  opacity: .6;
+  margin-bottom: 2.5em;
+}
+
+.start-btn {
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  color: #14151a;
+  background: #f2f2f2;
+  border: none;
+  border-radius: 999px;
+  padding: .8em 2.6em;
+  font-weight: 700;
+  letter-spacing: .1em;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.start-btn:hover { opacity: .85; }
+.start-btn:active { transform: scale(.97); }
+
+/* ---------- ゲームページ ---------- */
+.page {
+  width: 100%;
+  max-width: 720px;        /* PCで間延びしないよう最大幅を制限 */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* メディア領域：1枚の画像/動画を画面内に必ず収める（はみ出さない） */
+.page-media {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.media-el {
+  display: block;
+  max-width: 100%;
+  /* 縦長メディアでも画面に収まるよう高さも制限。
+     横長(16:9〜3:2)・縦長(9:16〜2:3)いずれも contain で全体表示。 */
+  max-height: 70vh;
+  max-height: 70dvh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #000;
+}
+
+/* 本文（空のときはJS側で hidden になる） */
+.page-text {
+  width: 100%;
+  font-size: clamp(1rem, 3.4vw, 1.1rem);
+  white-space: pre-wrap;   /* CSV内の改行をそのまま反映 */
+  word-break: break-word;
+}
+.page-text[hidden] { display: none; }
+
+/* 選択肢 */
+.page-choices {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.choice-btn {
+  width: 100%;
+  text-align: left;
+  font-size: clamp(.95rem, 3.4vw, 1.05rem);
+  color: #f2f2f2;
+  background: #232530;
+  border: 1px solid #34374a;
+  border-radius: 12px;
+  padding: 16px 18px;
+  line-height: 1.5;
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.choice-btn:hover { background: #2c2f3d; border-color: #4a4f68; }
+.choice-btn:active { transform: scale(.99); }
+
+/* 物語の終わり */
+.the-end {
+  text-align: center;
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
+  letter-spacing: .3em;
+  opacity: .7;
+  padding: 24px 0;
+}
+
+/* ---------- CSV選択画面（フォールバック） ---------- */
+.picker-inner {
+  text-align: center;
+  max-width: 520px;
+}
+.picker-title {
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
+  margin-bottom: .8em;
+}
+.picker-note {
+  font-size: clamp(.85rem, 3vw, .95rem);
+  opacity: .75;
+  line-height: 1.8;
+  margin-bottom: 1.8em;
+}
+.picker-note code {
+  background: #232530;
+  padding: .1em .4em;
+  border-radius: 6px;
+}
+.picker-btn {
+  display: inline-block;
+  font-size: clamp(.95rem, 3.4vw, 1.05rem);
+  color: #14151a;
+  background: #f2f2f2;
+  border-radius: 999px;
+  padding: .8em 2.2em;
+  font-weight: 700;
+  cursor: pointer;
+}
+.picker-btn:hover { opacity: .85; }
+.picker-drop {
+  margin-top: 1.4em;
+  padding: 28px 16px;
+  border: 2px dashed #4a4f68;
+  border-radius: 12px;
+  color: #8a8fa3;
+  font-size: clamp(.85rem, 3vw, .95rem);
+  transition: background .15s ease, border-color .15s ease;
+}
+.picker-drop.is-dragover {
+  background: rgba(120, 140, 220, .12);
+  border-color: #7c8cdc;
+  color: #c7d0f0;
+}
+
+/* ---------- 広い画面（タブレット横〜PC）での微調整 ---------- */
+@media (min-width: 768px) {
+  .media-el {
+    max-height: 75vh;
+    max-height: 75dvh;
+  }
+}

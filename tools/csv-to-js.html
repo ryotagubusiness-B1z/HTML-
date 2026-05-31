@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV → data.js 変換ツール</title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", "Meiryo", sans-serif; background:#14151a; color:#f2f2f2; line-height:1.7; margin:0; padding:32px 20px; }
+    .wrap { max-width:640px; margin:0 auto; }
+    h1 { font-size:1.4rem; }
+    p { opacity:.8; font-size:.95rem; }
+    code { background:#232530; padding:.1em .4em; border-radius:6px; }
+    .step { background:#1c1e26; border:1px solid #34374a; border-radius:12px; padding:20px; margin:18px 0; }
+    label.btn, button { display:inline-block; font-size:1rem; font-weight:700; border:none; border-radius:999px; padding:.7em 1.8em; cursor:pointer; }
+    label.btn { background:#f2f2f2; color:#14151a; }
+    button { background:#3b7; color:#0a1; margin-top:8px; }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    .ok { color:#8fd98f; }
+    .err { color:#ffb4b4; }
+    #status { margin-top:10px; font-size:.9rem; min-height:1.4em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>CSV → data.js 変換ツール</h1>
+    <p>
+      <code>data.csv</code> を選ぶと、ダブルクリックで開いても動くように
+      <code>data.js</code> を生成してダウンロードします。<br>
+      ダウンロードした <code>data.js</code> を <code>data/</code> フォルダに置いて（上書き）配布してください。
+    </p>
+
+    <div class="step">
+      <p><strong>① CSVを選択</strong></p>
+      <label class="btn">data.csv を選択<input type="file" id="file" accept=".csv,text/csv" hidden></label>
+      <p id="picked" style="margin:.6em 0 0;"></p>
+    </div>
+
+    <div class="step">
+      <p><strong>② data.js をダウンロード</strong></p>
+      <button id="download" disabled>data.js をダウンロード</button>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    var csvText = null;
+    var fileEl = document.getElementById('file');
+    var dlEl = document.getElementById('download');
+    var statusEl = document.getElementById('status');
+    var pickedEl = document.getElementById('picked');
+
+    fileEl.addEventListener('change', function () {
+      var f = fileEl.files && fileEl.files[0];
+      if (!f) { return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        csvText = String(reader.result);
+        if (csvText.charCodeAt(0) === 0xFEFF) { csvText = csvText.slice(1); } // BOM除去
+        pickedEl.textContent = '選択: ' + f.name + '（' + csvText.length + '文字）';
+        dlEl.disabled = false;
+        statusEl.textContent = '';
+      };
+      reader.onerror = function () {
+        statusEl.innerHTML = '<span class="err">読み込みに失敗しました。</span>';
+      };
+      reader.readAsText(f, 'UTF-8');
+    });
+
+    dlEl.addEventListener('click', function () {
+      if (csvText === null) { return; }
+      // テンプレートリテラル用にエスケープ
+      var esc = csvText.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+      var js =
+        '/* 自動生成ファイル: data.csv の内容を埋め込んだものです。\n' +
+        ' * index.html をダブルクリック(file://)で開いたときに使われます。\n' +
+        ' * data.csv を編集したら、このツールで再生成してください。\n' +
+        ' */\n' +
+        'window.GAMEBOOK_CSV = `' + esc + '`;\n';
+
+      var blob = new Blob([js], { type: 'text/javascript' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'data.js';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      statusEl.innerHTML = '<span class="ok">data.js を生成しました。data/ フォルダに置いてください。</span>';
+    });
+  </script>
+</body>
+</html>

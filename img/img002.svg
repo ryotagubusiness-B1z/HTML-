@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#3a2b4a"/>
+  <path d="M450 1200 L300 500 L450 480 L600 500 Z" fill="#1a1322"/>
+  <text x="450" y="140" fill="#c7a9e0" font-family="sans-serif" font-size="42" text-anchor="middle">SAMPLE IMAGE 002</text>
+  <text x="450" y="200" fill="#8a6fa3" font-family="sans-serif" font-size="26" text-anchor="middle">分かれ道（縦長 3:4）</text>
+</svg>
