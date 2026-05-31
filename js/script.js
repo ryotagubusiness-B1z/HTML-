@@ -197,7 +197,16 @@
         i++;
         continue;
       }
-      if (c === '\r') { // CRLF / CR
+      if (c === '\r') {
+        if (text[i + 1] === '\n') { // CRLF → \r を捨て、次の \n で改行確定
+          i++;
+          continue;
+        }
+        // CR単独（旧Mac形式）も改行として扱う
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
         i++;
         continue;
       }
@@ -259,6 +268,11 @@
         }
       }
 
+      if (Object.prototype.hasOwnProperty.call(pages, id)) {
+        // ページ番号は重複不可。制作ミスに気づけるよう通知（後の行で上書き）
+        console.warn('ページ番号「' + id + '」が重複しています。後の行で上書きされます。');
+      }
+
       pages[id] = {
         id: id,
         text: col(cells, 'text'),
@@ -274,6 +288,15 @@
     if (firstPageId === null) {
       throw new Error('有効なページが1件もありません。');
     }
+
+    // 遷移先のリンク切れを検出して通知（実行は止めない。制作支援用）
+    Object.keys(pages).forEach(function (pid) {
+      pages[pid].choices.forEach(function (ch) {
+        if (!Object.prototype.hasOwnProperty.call(pages, ch.to)) {
+          console.warn('ページ' + pid + 'の選択肢「' + ch.text + '」の遷移先ページ「' + ch.to + '」が存在しません。');
+        }
+      });
+    });
   }
 
   // =====================================================================
@@ -285,7 +308,12 @@
 
   function getCurrentPageId() {
     var h = location.hash.replace(/^#/, '');
-    return decodeURIComponent(h);
+    try {
+      return decodeURIComponent(h);
+    } catch (e) {
+      // 不正な % エンコード（例: #100%）でも落とさず、生文字列を返す
+      return h;
+    }
   }
 
   function render() {
@@ -297,11 +325,12 @@
       return;
     }
 
-    var page = pages[id];
-    if (!page) {
+    // hasOwnProperty で判定（"toString" 等の継承プロパティ誤ヒットを防ぐ）
+    if (!Object.prototype.hasOwnProperty.call(pages, id)) {
       showError('ページ「' + id + '」が見つかりません。CSVの遷移先を確認してください。');
       return;
     }
+    var page = pages[id];
 
     renderPage(page);
     showScreen('game');
@@ -368,6 +397,7 @@
       video.controls = true;
       video.playsInline = true;
       video.setAttribute('playsinline', ''); // iOS Safari
+      video.onerror = function () { this.style.display = 'none'; }; // 動画欠損時は隠す（画像と挙動を揃える）
       return video;
     }
 

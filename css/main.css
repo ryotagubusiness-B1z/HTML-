@@ -42,8 +42,13 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  /* セーフエリア（iPhoneのノッチ等）を考慮 */
-  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  /* セーフエリア（iPhoneのノッチ等）を考慮。env非対応/未定義でも0pxにフォールバックし、
+     横向きノッチのため左右にもセーフエリアを加算する。 */
+  padding:
+    calc(16px + env(safe-area-inset-top, 0px))
+    calc(16px + env(safe-area-inset-right, 0px))
+    calc(16px + env(safe-area-inset-bottom, 0px))
+    calc(16px + env(safe-area-inset-left, 0px));
 }
 
 .screen[hidden] {
@@ -55,6 +60,7 @@ body {
 .error-text {
   max-width: 640px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   text-align: center;
   color: #ffb4b4;
   background: rgba(255, 80, 80, .08);

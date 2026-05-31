@@ -53,6 +53,9 @@
   display: flex;
   justify-content: center;
 }
+/* display:flex がUAの [hidden]{display:none} を上書きするため明示的に打ち消す
+   （画像なしページで空のメディア枠と余白が残らないように） */
+.page-media[hidden] { display: none; }
 
 .media-el {
   display: block;
@@ -85,6 +88,7 @@
   gap: 12px;
   margin-top: 4px;
 }
+.page-choices[hidden] { display: none; }
 
 .choice-btn {
   width: 100%;
@@ -96,6 +100,7 @@
   border-radius: 12px;
   padding: 16px 18px;
   line-height: 1.5;
+  overflow-wrap: anywhere;   /* URL等の長い連続文字でも折り返してはみ出さない */
   transition: background .15s ease, border-color .15s ease, transform .1s ease;
 }
 .choice-btn:hover { background: #2c2f3d; border-color: #4a4f68; }
