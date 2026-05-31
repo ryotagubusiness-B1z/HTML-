@@ -37,8 +37,24 @@
     <section id="error-screen" class="screen" hidden>
       <p class="error-text" id="error-message"></p>
     </section>
+
+    <!-- CSV選択画面（サーバー無し・埋め込み無しで直接開いたときのフォールバック） -->
+    <section id="picker-screen" class="screen" hidden>
+      <div class="picker-inner">
+        <p class="picker-title">データ(CSV)を読み込んでください</p>
+        <p class="picker-note">ファイルを直接開いたため自動読込ができませんでした。<br>下のボタンから <code>data.csv</code> を選ぶか、ここにドラッグ＆ドロップしてください。</p>
+        <label class="picker-btn">
+          CSVファイルを選択
+          <input type="file" id="csv-file-input" accept=".csv,text/csv" hidden>
+        </label>
+        <div class="picker-drop" id="csv-drop-zone">ここにCSVをドロップ</div>
+      </div>
+    </section>
   </main>
 
+  <!-- 任意：CSVを埋め込んだデータ（配布してダブルクリックで開く場合に使用）。
+       存在しなくても動作します（その場合はfetch→ファイル選択にフォールバック）。 -->
+  <script src="data/data.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

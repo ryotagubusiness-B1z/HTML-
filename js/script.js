@@ -23,6 +23,15 @@
  *    そのセルを " " で囲ってください（" は "" で表現）。Excel の通常保存と同じ仕様です。
  *
  *  ※ 別作品へ流用する場合は data/data.csv と img/ の中身を差し替えるだけでOKです。
+ *
+ * 【 データの読み込み方式（3パターンに自動対応）】
+ *   ① fetch        : ローカルサーバー / Web公開時。data/data.csv を直接読み込む。
+ *   ② 埋め込み      : data/data.js に window.GAMEBOOK_CSV があればそれを使用。
+ *                     → index.html をダブルクリック(file://)しても動く。配布向け。
+ *                     （tools/csv-to-js.html で data.csv から data.js を生成できます）
+ *   ③ ファイル選択  : 上記いずれも使えない場合、CSV選択画面を表示し、
+ *                     ユーザーが選んだ/ドロップしたCSVを FileReader で読み込む。
+ *   読み込み順は ① → ②(fetch失敗時) → ③(②も無い時) です。
  * ===================================================================== */
 
 (function () {
@@ -38,14 +47,17 @@
     title:   document.getElementById('title-screen'),
     game:    document.getElementById('game-screen'),
     loading: document.getElementById('loading-screen'),
-    error:   document.getElementById('error-screen')
+    error:   document.getElementById('error-screen'),
+    picker:  document.getElementById('picker-screen')
   };
   var els = {
-    media:    document.getElementById('page-media'),
-    text:     document.getElementById('page-text'),
-    choices:  document.getElementById('page-choices'),
-    startBtn: document.getElementById('start-btn'),
-    errorMsg: document.getElementById('error-message')
+    media:     document.getElementById('page-media'),
+    text:      document.getElementById('page-text'),
+    choices:   document.getElementById('page-choices'),
+    startBtn:  document.getElementById('start-btn'),
+    errorMsg:  document.getElementById('error-message'),
+    fileInput: document.getElementById('csv-file-input'),
+    dropZone:  document.getElementById('csv-drop-zone')
   };
 
   // ページ番号(string) -> ページオブジェクト の対応表
@@ -55,7 +67,7 @@
   // ---- 起動 -------------------------------------------------------------
   showScreen('loading');
 
-  loadCsv(CSV_PATH)
+  loadData()
     .then(function (text) {
       var rows = parseCsv(text);
       buildPages(rows);
@@ -68,10 +80,62 @@
       showError(
         'データの読み込みに失敗しました。\n' +
         '・data/data.csv が存在するか確認してください。\n' +
-        '・ファイルを直接開いた場合は、ローカルサーバー経由で開いてください。\n\n' +
+        '・CSVの内容を確認してください。\n\n' +
         '詳細: ' + err.message
       );
     });
+
+  // =====================================================================
+  // データ読み込み（① fetch → ② 埋め込み → ③ ファイル選択 の順に自動対応）
+  // =====================================================================
+  function loadData() {
+    return loadCsv(CSV_PATH)
+      .then(function (text) { return text; })          // ① サーバー/Web公開
+      .catch(function () {
+        if (typeof window.GAMEBOOK_CSV === 'string' && window.GAMEBOOK_CSV.trim() !== '') {
+          return window.GAMEBOOK_CSV;                   // ② 埋め込み(file://でも動作)
+        }
+        return waitForUserFile();                       // ③ ユーザーにCSVを選ばせる
+      });
+  }
+
+  // ③ CSV選択画面を表示し、選択/ドロップされたファイルの中身を返す
+  function waitForUserFile() {
+    return new Promise(function (resolve, reject) {
+      showScreen('picker');
+
+      function handleFile(file) {
+        if (!file) { return; }
+        var reader = new FileReader();
+        reader.onload = function () { resolve(String(reader.result)); };
+        reader.onerror = function () { reject(new Error('ファイルの読み込みに失敗しました。')); };
+        reader.readAsText(file, 'UTF-8');
+      }
+
+      els.fileInput.addEventListener('change', function () {
+        handleFile(els.fileInput.files && els.fileInput.files[0]);
+      });
+
+      // ドラッグ＆ドロップ対応
+      var dz = els.dropZone;
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dz.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach(function (ev) {
+        dz.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dz.classList.remove('is-dragover');
+        });
+      });
+      dz.addEventListener('drop', function (e) {
+        var dt = e.dataTransfer;
+        handleFile(dt && dt.files && dt.files[0]);
+      });
+    });
+  }
 
   // =====================================================================
   // CSV 読み込み

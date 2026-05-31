@@ -110,6 +110,52 @@
   padding: 24px 0;
 }
 
+/* ---------- CSV選択画面（フォールバック） ---------- */
+.picker-inner {
+  text-align: center;
+  max-width: 520px;
+}
+.picker-title {
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
+  margin-bottom: .8em;
+}
+.picker-note {
+  font-size: clamp(.85rem, 3vw, .95rem);
+  opacity: .75;
+  line-height: 1.8;
+  margin-bottom: 1.8em;
+}
+.picker-note code {
+  background: #232530;
+  padding: .1em .4em;
+  border-radius: 6px;
+}
+.picker-btn {
+  display: inline-block;
+  font-size: clamp(.95rem, 3.4vw, 1.05rem);
+  color: #14151a;
+  background: #f2f2f2;
+  border-radius: 999px;
+  padding: .8em 2.2em;
+  font-weight: 700;
+  cursor: pointer;
+}
+.picker-btn:hover { opacity: .85; }
+.picker-drop {
+  margin-top: 1.4em;
+  padding: 28px 16px;
+  border: 2px dashed #4a4f68;
+  border-radius: 12px;
+  color: #8a8fa3;
+  font-size: clamp(.85rem, 3vw, .95rem);
+  transition: background .15s ease, border-color .15s ease;
+}
+.picker-drop.is-dragover {
+  background: rgba(120, 140, 220, .12);
+  border-color: #7c8cdc;
+  color: #c7d0f0;
+}
+
 /* ---------- 広い画面（タブレット横〜PC）での微調整 ---------- */
 @media (min-width: 768px) {
   .media-el {
