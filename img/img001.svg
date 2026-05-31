@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#2b3a4a"/>
+  <ellipse cx="600" cy="800" rx="360" ry="300" fill="#11171d"/>
+  <text x="600" y="120" fill="#9fb4c7" font-family="sans-serif" font-size="44" text-anchor="middle">SAMPLE IMAGE 001</text>
+  <text x="600" y="180" fill="#5e7385" font-family="sans-serif" font-size="28" text-anchor="middle">洞窟の入り口（横長 3:2）</text>
+</svg>
