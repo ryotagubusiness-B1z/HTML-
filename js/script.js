@@ -6,17 +6,23 @@
  *
  * 【 CSV の項目（1行 = 1ページ）】 ※1行目はヘッダー（固定）
  *   page          : ページ番号           （整数 / 必須・重複不可）
+ *                   ※ page=0 はタイトル画面として扱われます。
  *   text          : 本文                 （文字列 / 空欄可）
+ *                   ※ page=0 のときは「作品名」としてブラウザのタブ名に使われます。
  *   image         : 画像 or 動画ファイル名 （文字列 / 空欄可・img/ からの相対）
  *   choice1_text  : 選択肢1のテキスト      （文字列 / 空欄可）
+ *                   ※ page=0 では「はじめる」ボタンの文言（既定の遷移先は1）。
  *   choice1_to    : 選択肢1の遷移先ページ番号（整数 / 空欄可）
  *   choice2_text  : 選択肢2のテキスト
+ *                   ※ page=0 では choice2_text を「クレジット」として下中央に表示
+ *                     （choice2_to は不要／無効）。
  *   choice2_to    : 選択肢2の遷移先ページ番号
  *   choice3_text  : 選択肢3のテキスト
  *   choice3_to    : 選択肢3の遷移先ページ番号
  *
  *  - 選択肢は最大3つ。テキストと遷移先の両方が入っている選択肢のみ表示します。
- *  - 選択肢が1つも無いページは「物語の終わり」として扱われます。
+ *  - 選択肢が1つも無いページは「物語の終わり」として扱われ、「おわり」と
+ *    「TOPへ」ボタン（タイトル= page0 へ戻る）が表示されます。
  *  - image は拡張子で画像/動画を自動判定します（mp4, mov, mpg 等は動画）。
  *  - 文字コードは UTF-8（BOM 付き可）で保存してください。
  *  - 本文やテキストにカンマ・改行・ダブルクォートを含める場合は、
@@ -41,20 +47,21 @@
   var CSV_PATH = 'data/data.csv';   // CSV の場所
   var IMG_DIR  = 'img/';            // 画像・動画フォルダ
   var VIDEO_EXT = ['mp4', 'mpg', 'mpeg', 'mov', 'm4v', 'webm', 'ogv']; // 動画とみなす拡張子
+  var TITLE_PAGE = '0';             // タイトル画面として扱うページ番号
 
   // ---- 要素参照 ---------------------------------------------------------
   var screens = {
-    title:   document.getElementById('title-screen'),
     game:    document.getElementById('game-screen'),
     loading: document.getElementById('loading-screen'),
     error:   document.getElementById('error-screen'),
     picker:  document.getElementById('picker-screen')
   };
   var els = {
+    pageEl:    document.getElementById('page'),
     media:     document.getElementById('page-media'),
     text:      document.getElementById('page-text'),
     choices:   document.getElementById('page-choices'),
-    startBtn:  document.getElementById('start-btn'),
+    credit:    document.getElementById('page-credit'),
     errorMsg:  document.getElementById('error-message'),
     fileInput: document.getElementById('csv-file-input'),
     dropZone:  document.getElementById('csv-drop-zone')
@@ -73,7 +80,6 @@
       buildPages(rows);
       // ハッシュ変更でページ遷移（ブラウザの戻る/進むが効く）
       window.addEventListener('hashchange', render);
-      els.startBtn.addEventListener('click', startGame);
       render(); // 初回描画
     })
     .catch(function (err) {
@@ -97,6 +103,17 @@
         }
         return waitForUserFile();                       // ③ ユーザーにCSVを選ばせる
       });
+  }
+
+  function loadCsv(path) {
+    // キャッシュ無効化のため日時を付与（CSV編集後の再読み込みを確実にする）
+    var url = path + '?t=' + Date.now();
+    return fetch(url).then(function (res) {
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + ' (' + path + ')');
+      }
+      return res.text();
+    });
   }
 
   // ③ CSV選択画面を表示し、選択/ドロップされたファイルの中身を返す
@@ -134,20 +151,6 @@
         var dt = e.dataTransfer;
         handleFile(dt && dt.files && dt.files[0]);
       });
-    });
-  }
-
-  // =====================================================================
-  // CSV 読み込み
-  // =====================================================================
-  function loadCsv(path) {
-    // キャッシュ無効化のため日時を付与（CSV編集後の再読み込みを確実にする）
-    var url = path + '?t=' + Date.now();
-    return fetch(url).then(function (res) {
-      if (!res.ok) {
-        throw new Error('HTTP ' + res.status + ' (' + path + ')');
-      }
-      return res.text();
     });
   }
 
@@ -273,12 +276,17 @@
         console.warn('ページ番号「' + id + '」が重複しています。後の行で上書きされます。');
       }
 
-      pages[id] = {
+      var pageObj = {
         id: id,
         text: col(cells, 'text'),
         image: col(cells, 'image'),
         choices: choices
       };
+      // タイトルページ(page=0)は choice2_text をクレジットとして使う（遷移先は不要）
+      if (id === TITLE_PAGE) {
+        pageObj.credit = col(cells, 'choice2_text');
+      }
+      pages[id] = pageObj;
 
       if (firstPageId === null) {
         firstPageId = id;
@@ -302,10 +310,6 @@
   // =====================================================================
   // 画面遷移
   // =====================================================================
-  function startGame() {
-    location.hash = '#' + firstPageId;
-  }
-
   function getCurrentPageId() {
     var h = location.hash.replace(/^#/, '');
     try {
@@ -319,20 +323,23 @@
   function render() {
     var id = getCurrentPageId();
 
-    // ハッシュ無し → タイトル画面（開き直すと必ずタイトルに戻る）
+    // ハッシュ無し → タイトル画面（page=0）。開き直すと必ずタイトルに戻る。
     if (id === '') {
-      showScreen('title');
-      return;
+      id = TITLE_PAGE;
     }
 
     // hasOwnProperty で判定（"toString" 等の継承プロパティ誤ヒットを防ぐ）
     if (!Object.prototype.hasOwnProperty.call(pages, id)) {
-      showError('ページ「' + id + '」が見つかりません。CSVの遷移先を確認してください。');
-      return;
+      // タイトル(page0)が未定義のCSVでも動くよう、先頭ページにフォールバック
+      if (id === TITLE_PAGE && firstPageId !== null) {
+        id = firstPageId;
+      } else {
+        showError('ページ「' + id + '」が見つかりません。CSVの遷移先を確認してください。');
+        return;
+      }
     }
-    var page = pages[id];
 
-    renderPage(page);
+    renderPage(pages[id], id === TITLE_PAGE);
     showScreen('game');
     // 新しいページの先頭へスクロール
     window.scrollTo(0, 0);
@@ -341,19 +348,27 @@
   // =====================================================================
   // ページ描画
   // =====================================================================
-  function renderPage(page) {
+  function renderPage(page, isTitle) {
+    // タイトル専用レイアウト用のクラス切り替え
+    if (isTitle) {
+      els.pageEl.classList.add('is-title');
+      if (page.text) { document.title = page.text; } // 作品名をタブ名に
+    } else {
+      els.pageEl.classList.remove('is-title');
+    }
+
     // --- メディア（画像 or 動画） ---
     els.media.innerHTML = '';
     if (page.image) {
-      var node = createMedia(page.image);
-      els.media.appendChild(node);
+      els.media.appendChild(createMedia(page.image));
       els.media.hidden = false;
     } else {
       els.media.hidden = true;
     }
 
-    // --- 本文（空なら非表示） ---
-    if (page.text) {
+    // --- 本文 ---
+    // タイトルページでは本文は表示しない（text は作品名としてタブ名に使用）
+    if (!isTitle && page.text) {
       els.text.textContent = page.text; // 改行はCSS(white-space)で反映
       els.text.hidden = false;
     } else {
@@ -365,24 +380,41 @@
     els.choices.innerHTML = '';
     if (page.choices.length > 0) {
       page.choices.forEach(function (choice) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'choice-btn';
-        btn.textContent = choice.text;
-        btn.addEventListener('click', function () {
-          location.hash = '#' + choice.to;
-        });
-        els.choices.appendChild(btn);
+        els.choices.appendChild(makeNavButton(choice.text, choice.to));
       });
-      els.choices.hidden = false;
-    } else {
-      // 選択肢が無い = 物語の終わり
+    } else if (!isTitle) {
+      // 選択肢が無い = 物語の終わり（タイトルページでは出さない）
       var end = document.createElement('p');
       end.className = 'the-end';
       end.textContent = 'おわり';
       els.choices.appendChild(end);
-      els.choices.hidden = false;
+      // TOPへ（タイトル= page0 へ戻る）
+      var top = makeNavButton('TOPへ', TITLE_PAGE);
+      top.classList.add('top-btn');
+      els.choices.appendChild(top);
     }
+    els.choices.hidden = false;
+
+    // --- クレジット（タイトルページのみ・下中央） ---
+    if (isTitle && page.credit) {
+      els.credit.textContent = page.credit;
+      els.credit.hidden = false;
+    } else {
+      els.credit.textContent = '';
+      els.credit.hidden = true;
+    }
+  }
+
+  // 遷移ボタンを生成
+  function makeNavButton(text, to) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice-btn';
+    btn.textContent = text;
+    btn.addEventListener('click', function () {
+      location.hash = '#' + to;
+    });
+    return btn;
   }
 
   // 拡張子から画像/動画を判定して要素を生成

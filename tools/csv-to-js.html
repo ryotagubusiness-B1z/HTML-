@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSV → data.js 変換ツール</title>
+  <title>ゲームブック ビルドツール</title>
   <style>
     body { font-family: -apple-system, "Segoe UI", "Meiryo", sans-serif; background:#14151a; color:#f2f2f2; line-height:1.7; margin:0; padding:32px 20px; }
-    .wrap { max-width:640px; margin:0 auto; }
+    .wrap { max-width:680px; margin:0 auto; }
     h1 { font-size:1.4rem; }
-    p { opacity:.8; font-size:.95rem; }
+    h2 { font-size:1.1rem; margin-top:0; }
+    p { opacity:.85; font-size:.95rem; }
     code { background:#232530; padding:.1em .4em; border-radius:6px; }
     .step { background:#1c1e26; border:1px solid #34374a; border-radius:12px; padding:20px; margin:18px 0; }
     label.btn, button { display:inline-block; font-size:1rem; font-weight:700; border:none; border-radius:999px; padding:.7em 1.8em; cursor:pointer; }
@@ -16,76 +17,259 @@
     button { background:#2e9e5b; color:#fff; margin-top:8px; }
     button:disabled { opacity:.4; cursor:not-allowed; }
     .ok { color:#8fd98f; }
-    .err { color:#ffb4b4; }
-    #status { margin-top:10px; font-size:.9rem; min-height:1.4em; }
+    .err { color:#ffb4b4; white-space:pre-wrap; }
+    .muted { opacity:.6; font-size:.85rem; }
+    .status { margin-top:10px; font-size:.9rem; min-height:1.4em; }
+    ul { font-size:.9rem; opacity:.85; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>CSV → data.js 変換ツール</h1>
-    <p>
-      <code>data.csv</code> を選ぶと、ダブルクリックで開いても動くように
-      <code>data.js</code> を生成してダウンロードします。<br>
-      ダウンロードした <code>data.js</code> を <code>data/</code> フォルダに置いて（上書き）配布してください。
-    </p>
+    <h1>ゲームブック ビルドツール</h1>
 
+    <!-- ============ ② 配布フォルダ(ZIP)生成 ============ -->
     <div class="step">
-      <p><strong>① CSVを選択</strong></p>
-      <label class="btn">data.csv を選択<input type="file" id="file" accept=".csv,text/csv" hidden></label>
-      <p id="picked" style="margin:.6em 0 0;"></p>
+      <h2>配布用フォルダ(ZIP)を生成</h2>
+      <p>
+        <code>data.csv</code> と <code>img/</code> から、配布用の ZIP を生成します。<br>
+        生成物には次が<strong>含まれません</strong>：<code>README.md</code> / <code>tools/</code> / <code>data.csv</code>。<br>
+        各ファイルはコメントを除去し、データは <code>data/data.js</code> に埋め込みます（ダブルクリックで動作）。
+      </p>
+      <p class="muted">
+        ※ このツールは<strong>ローカルサーバー経由</strong>で開いてください（プロジェクト直下で
+        <code>python -m http.server</code> 等を実行し、<code>http://localhost:8000/tools/csv-to-js.html</code> を開く）。
+        ファイルを直接(file://)開くと、隣のファイルを読み込めず生成できません。
+      </p>
+      <button id="build-btn">配布ZIPを生成</button>
+      <div class="status" id="build-status"></div>
     </div>
 
+    <!-- ============ ① data.js のみ生成（簡易） ============ -->
     <div class="step">
-      <p><strong>② data.js をダウンロード</strong></p>
-      <button id="download" disabled>data.js をダウンロード</button>
-      <div id="status"></div>
+      <h2>data.js だけを生成（簡易）</h2>
+      <p>
+        編集した <code>data.csv</code> を選ぶと、<code>data.js</code> だけをダウンロードします。
+        <code>data/</code> に上書きすればダブルクリックでの動作確認に使えます。
+        （こちらはファイルを直接開いても使えます）
+      </p>
+      <label class="btn">data.csv を選択<input type="file" id="csv-file" accept=".csv,text/csv" hidden></label>
+      <span id="picked" class="muted"></span>
+      <div class="status" id="csv-status"></div>
     </div>
   </div>
 
   <script>
-    var csvText = null;
-    var fileEl = document.getElementById('file');
-    var dlEl = document.getElementById('download');
-    var statusEl = document.getElementById('status');
-    var pickedEl = document.getElementById('picked');
+  (function () {
+    'use strict';
 
-    fileEl.addEventListener('change', function () {
-      var f = fileEl.files && fileEl.files[0];
-      if (!f) { return; }
-      var reader = new FileReader();
-      reader.onload = function () {
-        csvText = String(reader.result);
-        if (csvText.charCodeAt(0) === 0xFEFF) { csvText = csvText.slice(1); } // BOM除去
-        pickedEl.textContent = '選択: ' + f.name + '（' + csvText.length + '文字）';
-        dlEl.disabled = false;
-        statusEl.textContent = '';
-      };
-      reader.onerror = function () {
-        statusEl.innerHTML = '<span class="err">読み込みに失敗しました。</span>';
-      };
-      reader.readAsText(f, 'UTF-8');
-    });
+    // ============================================================
+    // 共通ユーティリティ
+    // ============================================================
+    function stripBom(s) { return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s; }
 
-    dlEl.addEventListener('click', function () {
-      if (csvText === null) { return; }
-      // テンプレートリテラル用にエスケープ
-      var esc = csvText.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
-      var js =
-        '/* 自動生成ファイル: data.csv の内容を埋め込んだものです。\n' +
-        ' * index.html をダブルクリック(file://)で開いたときに使われます。\n' +
-        ' * data.csv を編集したら、このツールで再生成してください。\n' +
-        ' */\n' +
-        'window.GAMEBOOK_CSV = `' + esc + '`;\n';
+    // CSV → data.js の中身（テンプレートリテラル用エスケープ）
+    function csvToDataJs(csv, withHeader) {
+      var esc = stripBom(csv).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+      var head = withHeader
+        ? '/* 自動生成: data.csv の内容を埋め込んだものです。data.csv を編集したら再生成してください。 */\n'
+        : '';
+      return head + 'window.GAMEBOOK_CSV = `' + esc + '`;\n';
+    }
 
-      var blob = new Blob([js], { type: 'text/javascript' });
+    // ---- コメント除去（配布物の難読化／流用抑止用） ----
+    function stripCss(s) {
+      return s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n{3,}/g, '\n\n').replace(/^[ \t]+$/gm, '').trim() + '\n';
+    }
+    function stripHtml(s) {
+      return s.replace(/<!--[\s\S]*?-->/g, '').replace(/\n{3,}/g, '\n\n');
+    }
+    // JS はコメントだけ除去（文字列・正規表現リテラルは保護）。
+    // 念のため除去後に構文チェックし、失敗したら原本を返す（安定性優先）。
+    function stripJsRaw(src) {
+      var out = '', i = 0, n = src.length;
+      function lastSig() {
+        for (var k = out.length - 1; k >= 0; k--) {
+          var ch = out[k];
+          if (ch !== ' ' && ch !== '\t' && ch !== '\n' && ch !== '\r') { return ch; }
+        }
+        return '';
+      }
+      while (i < n) {
+        var c = src[i], d = src[i + 1];
+        if (c === '/' && d === '/') { while (i < n && src[i] !== '\n') { i++; } continue; }
+        if (c === '/' && d === '*') { i += 2; while (i < n && !(src[i] === '*' && src[i + 1] === '/')) { i++; } i += 2; continue; }
+        if (c === '"' || c === "'" || c === '`') {
+          var q = c; out += c; i++;
+          while (i < n) { var e = src[i]; out += e; if (e === '\\') { out += (src[i + 1] || ''); i += 2; continue; } i++; if (e === q) { break; } }
+          continue;
+        }
+        if (c === '/') {
+          var ls = lastSig();
+          if (ls === '' || '(,=:[!&|?{};+-*%^~<>'.indexOf(ls) >= 0) { // 正規表現リテラルの位置
+            out += c; i++; var inClass = false;
+            while (i < n) {
+              var f = src[i]; out += f;
+              if (f === '\\') { out += (src[i + 1] || ''); i += 2; continue; }
+              if (f === '[') { inClass = true; }
+              else if (f === ']') { inClass = false; }
+              else if (f === '/' && !inClass) { i++; break; }
+              i++;
+            }
+            while (i < n && /[a-z]/i.test(src[i])) { out += src[i]; i++; } // フラグ
+            continue;
+          }
+        }
+        out += c; i++;
+      }
+      return out.replace(/\n{3,}/g, '\n\n').replace(/^[ \t]+$/gm, '');
+    }
+    function stripJs(src) {
+      try { var s = stripJsRaw(src); /* 構文チェック（実行はしない） */ new Function(s); return s; }
+      catch (e) { return src; }
+    }
+
+    // ---- 純JS ZIP 生成（無圧縮 store。外部ライブラリ不要） ----
+    var crcTable = (function () {
+      var t = [];
+      for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) { c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); } t[n] = c >>> 0; }
+      return t;
+    })();
+    function crc32(u8) { var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) { c = crcTable[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); } return (c ^ 0xFFFFFFFF) >>> 0; }
+    function strU8(s) { return new TextEncoder().encode(s); }
+    function u16(v) { var b = new Uint8Array(2); b[0] = v & 0xFF; b[1] = (v >>> 8) & 0xFF; return b; }
+    function u32(v) { var b = new Uint8Array(4); b[0] = v & 0xFF; b[1] = (v >>> 8) & 0xFF; b[2] = (v >>> 16) & 0xFF; b[3] = (v >>> 24) & 0xFF; return b; }
+
+    function makeZip(files) { // files: [{ name, data:Uint8Array }]
+      var local = [], central = [], offset = 0;
+      files.forEach(function (f) {
+        var name = strU8(f.name), data = f.data, crc = crc32(data);
+        [u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc),
+         u32(data.length), u32(data.length), u16(name.length), u16(0), name, data
+        ].forEach(function (p) { local.push(p); });
+        [u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc),
+         u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0),
+         u32(0), u32(offset), name
+        ].forEach(function (p) { central.push(p); });
+        offset += 30 + name.length + data.length;
+      });
+      var cdSize = 0; central.forEach(function (p) { cdSize += p.length; });
+      var eocd = [u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cdSize), u32(offset), u16(0)];
+      var all = local.concat(central).concat(eocd);
+      var total = 0; all.forEach(function (p) { total += p.length; });
+      var out = new Uint8Array(total), pos = 0;
+      all.forEach(function (p) { out.set(p, pos); pos += p.length; });
+      return out;
+    }
+
+    function download(filename, blob) {
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'data.js';
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      statusEl.innerHTML = '<span class="ok">data.js を生成しました。data/ フォルダに置いてください。</span>';
+    }
+
+    // 簡易CSVパーサ（image列の抽出用。本体と同等仕様）
+    function parseCsv(text) {
+      text = stripBom(text);
+      var rows = [], row = [], field = '', q = false, i = 0;
+      while (i < text.length) {
+        var c = text[i];
+        if (q) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i += 2; continue; } q = false; i++; continue; } field += c; i++; continue; }
+        if (c === '"') { q = true; i++; continue; }
+        if (c === ',') { row.push(field); field = ''; i++; continue; }
+        if (c === '\r') { if (text[i + 1] === '\n') { i++; continue; } row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+        if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+        field += c; i++;
+      }
+      if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+      return rows;
+    }
+    function imageNames(csv) {
+      var rows = parseCsv(csv);
+      if (!rows.length) { return []; }
+      var header = rows[0].map(function (h) { return h.trim().toLowerCase(); });
+      var ci = header.indexOf('image');
+      if (ci < 0) { return []; }
+      var seen = {}, list = [];
+      for (var r = 1; r < rows.length; r++) {
+        var v = (rows[r][ci] || '').trim();
+        if (v && !seen[v]) { seen[v] = 1; list.push(v); }
+      }
+      return list;
+    }
+
+    // ============================================================
+    // ① data.js のみ生成
+    // ============================================================
+    var csvFile = document.getElementById('csv-file');
+    var csvStatus = document.getElementById('csv-status');
+    var pickedEl = document.getElementById('picked');
+    csvFile.addEventListener('change', function () {
+      var f = csvFile.files && csvFile.files[0];
+      if (!f) { return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var js = csvToDataJs(String(reader.result), true);
+        download('data.js', new Blob([js], { type: 'text/javascript' }));
+        pickedEl.textContent = '選択: ' + f.name;
+        csvStatus.innerHTML = '<span class="ok">data.js を生成しました。data/ に上書きしてください。</span>';
+      };
+      reader.onerror = function () { csvStatus.innerHTML = '<span class="err">読み込みに失敗しました。</span>'; };
+      reader.readAsText(f, 'UTF-8');
     });
+
+    // ============================================================
+    // ② 配布ZIP生成（隣接ファイルを fetch して組み立て）
+    // ============================================================
+    var buildBtn = document.getElementById('build-btn');
+    var buildStatus = document.getElementById('build-status');
+
+    function fetchText(url) { return fetch(url + '?t=' + Date.now()).then(function (r) { if (!r.ok) { throw new Error(url + ' (HTTP ' + r.status + ')'); } return r.text(); }); }
+    function fetchBin(url) { return fetch(url + '?t=' + Date.now()).then(function (r) { if (!r.ok) { throw new Error(url + ' (HTTP ' + r.status + ')'); } return r.arrayBuffer(); }); }
+
+    buildBtn.addEventListener('click', function () {
+      buildBtn.disabled = true;
+      buildStatus.innerHTML = 'ビルド中...';
+      var base = '../'; // tools/ から見たプロジェクト直下
+      var files = [];
+      var csvText = '';
+
+      Promise.all([
+        fetchText(base + 'index.html'),
+        fetchText(base + 'css/main.css'),
+        fetchText(base + 'css/page.css'),
+        fetchText(base + 'js/script.js'),
+        fetchText(base + 'data/data.csv')
+      ]).then(function (res) {
+        var html = res[0], mainCss = res[1], pageCss = res[2], js = res[3];
+        csvText = res[4];
+
+        files.push({ name: 'index.html', data: strU8(stripHtml(html)) });
+        files.push({ name: 'css/main.css', data: strU8(stripCss(mainCss)) });
+        files.push({ name: 'css/page.css', data: strU8(stripCss(pageCss)) });
+        files.push({ name: 'js/script.js', data: strU8(stripJs(js)) });
+        files.push({ name: 'data/data.js', data: strU8(csvToDataJs(csvText, false)) });
+
+        // CSV が参照する画像だけを取り込む
+        var imgs = imageNames(csvText);
+        return Promise.all(imgs.map(function (name) {
+          return fetchBin(base + 'img/' + name).then(function (buf) {
+            files.push({ name: 'img/' + name, data: new Uint8Array(buf) });
+          });
+        })).then(function () { return imgs.length; });
+      }).then(function (imgCount) {
+        var zip = makeZip(files);
+        download('dist.zip', new Blob([zip], { type: 'application/zip' }));
+        buildStatus.innerHTML = '<span class="ok">dist.zip を生成しました（ファイル' + files.length +
+          '件 / 画像' + imgCount + '枚）。README・tools・data.csv は含まれません。</span>';
+      }).catch(function (err) {
+        buildStatus.innerHTML = '<span class="err">生成に失敗しました。\n' +
+          'ローカルサーバー経由で開いているか確認してください。\n詳細: ' + err.message + '</span>';
+      }).then(function () { buildBtn.disabled = false; });
+    });
+  })();
   </script>
 </body>
 </html>

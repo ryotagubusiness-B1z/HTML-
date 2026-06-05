@@ -3,38 +3,8 @@
  * 配色・装飾はここを編集すれば作品ごとに調整できます。
  * ===================================================================== */
 
-/* ---------- タイトル画面 ---------- */
-.title-inner {
-  text-align: center;
-  max-width: 720px;
-}
-
-.title-text {
-  font-size: clamp(2rem, 7vw, 3.5rem);
-  letter-spacing: .08em;
-  margin-bottom: .25em;
-}
-
-.title-sub {
-  font-size: clamp(.8rem, 3vw, 1rem);
-  letter-spacing: .3em;
-  opacity: .6;
-  margin-bottom: 2.5em;
-}
-
-.start-btn {
-  font-size: clamp(1rem, 4vw, 1.25rem);
-  color: #14151a;
-  background: #f2f2f2;
-  border: none;
-  border-radius: 999px;
-  padding: .8em 2.6em;
-  font-weight: 700;
-  letter-spacing: .1em;
-  transition: transform .15s ease, opacity .15s ease;
-}
-.start-btn:hover { opacity: .85; }
-.start-btn:active { transform: scale(.97); }
+/* タイトル画面は page=0 として下記「ゲームページ」と同じ枠組みで描画し、
+   .page.is-title の追加スタイルだけで見た目を切り替えます。 */
 
 /* ---------- ゲームページ ---------- */
 .page {
@@ -47,7 +17,8 @@
   gap: 20px;
 }
 
-/* メディア領域：1枚の画像/動画を画面内に必ず収める（はみ出さない） */
+/* メディア領域：画像中心。縮小せず常に幅いっぱい（最大720px）に表示する。
+   高さ制限はかけないので、縦長画像で選択肢が下に来る場合はスクロールで表示。 */
 .page-media {
   width: 100%;
   display: flex;
@@ -59,16 +30,9 @@
 
 .media-el {
   display: block;
-  max-width: 100%;
-  /* 縦長メディアでも画面に収まるよう高さも制限。
-     横長(16:9〜3:2)・縦長(9:16〜2:3)いずれも contain で全体表示。 */
-  max-height: 70vh;
-  max-height: 70dvh;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+  width: 100%;          /* いかなる場合も幅いっぱい（.page の max-width:720px で頭打ち） */
+  height: auto;         /* 縦横比を維持。高さ制限なし */
   border-radius: 10px;
-  background: #000;
 }
 
 /* 本文（空のときはJS側で hidden になる） */
@@ -112,8 +76,49 @@
   font-size: clamp(1.1rem, 4vw, 1.4rem);
   letter-spacing: .3em;
   opacity: .7;
-  padding: 24px 0;
+  padding: 24px 0 8px;
 }
+
+/* TOPへ ボタン（エンディングからタイトルへ戻る）。中央寄せのピル型。 */
+.top-btn {
+  align-self: center;
+  width: auto;
+  text-align: center;
+  border-radius: 999px;
+  padding: 12px 32px;
+}
+
+/* ---------- タイトル画面（page=0）専用の見た目 ---------- */
+/* 「はじめる」ボタンは中央寄せのピル型、クレジットは下中央に小さく表示 */
+.page.is-title .page-choices {
+  align-items: center;
+}
+.page.is-title .choice-btn {
+  width: auto;
+  text-align: center;
+  color: #14151a;
+  background: #f2f2f2;
+  border: none;
+  border-radius: 999px;
+  padding: .8em 2.6em;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+.page.is-title .choice-btn:hover {
+  background: #fff;
+  opacity: .9;
+}
+
+.page-credit {
+  width: 100%;
+  text-align: center;
+  opacity: .55;
+  font-size: clamp(.72rem, 2.6vw, .85rem);
+  margin-top: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.page-credit[hidden] { display: none; }
 
 /* ---------- CSV選択画面（フォールバック） ---------- */
 .picker-inner {
@@ -159,12 +164,4 @@
   background: rgba(120, 140, 220, .12);
   border-color: #7c8cdc;
   color: #c7d0f0;
-}
-
-/* ---------- 広い画面（タブレット横〜PC）での微調整 ---------- */
-@media (min-width: 768px) {
-  .media-el {
-    max-height: 75vh;
-    max-height: 75dvh;
-  }
 }

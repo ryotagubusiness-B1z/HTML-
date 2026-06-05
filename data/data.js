@@ -4,6 +4,7 @@
  * （ローカルサーバー/Web公開時は data.csv が優先されるため、このファイルは未使用です）
  */
 window.GAMEBOOK_CSV = `page,text,image,choice1_text,choice1_to,choice2_text,choice2_to,choice3_text,choice3_to
+0,サンプルゲームブック,img001.svg,はじめる,1,(c) 2026 R-Business,,,
 1,"古い洞窟の入り口に立っている。
 ひんやりとした空気が奥から流れてくる。
 あなたはどうする？",img001.svg,洞窟に入る,2,引き返して帰る,3,,
@@ -14,5 +15,5 @@ window.GAMEBOOK_CSV = `page,text,image,choice1_text,choice1_to,choice2_text,choi
 5,"行き止まりだった。来た道を戻るしかない。",img001.svg,戻る,2,,,,
 6,"宝箱を見つけた！
 中には古びた金貨が詰まっている。
-あなたは財宝を手にした。",img003.svg,最初からやり直す,1,,,,
+あなたは財宝を手にした。",img003.svg,,,,,,
 `;

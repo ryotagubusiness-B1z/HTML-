@@ -55,6 +55,12 @@ body {
   display: none;
 }
 
+/* ゲーム/タイトルは画像を上詰めにし、はみ出す分はスクロールで見せる
+   （読み込み/エラー/CSV選択は中央寄せのまま） */
+#game-screen {
+  justify-content: flex-start;
+}
+
 /* 読み込み / エラー */
 .loading-text { opacity: .7; }
 .error-text {
